@@ -1,73 +1,111 @@
 package com.appcent.flickr.Activity;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-import androidx.recyclerview.widget.StaggeredGridLayoutManager;
-
 import android.content.Context;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.View;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
-import com.appcent.flickr.Adapter.FlickrAdapter;
+import com.appcent.flickr.Adapter.PaginationListener;
+import com.appcent.flickr.Adapter.PostRecyclerAdapter;
 import com.appcent.flickr.Entity.FlickrData;
+import com.appcent.flickr.Entity.Photo;
 import com.appcent.flickr.R;
 import com.appcent.flickr.RestApi.RestApiClient;
 import com.appcent.flickr.RestApi.RestInterface;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import java.util.ArrayList;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class MainActivity extends AppCompatActivity {
-    FlickrAdapter flickrAdapter;
+import static com.appcent.flickr.Adapter.PaginationListener.PAGE_START;
 
-    RecyclerView recyclerView;
+public class MainActivity extends AppCompatActivity
+        implements SwipeRefreshLayout.OnRefreshListener {
+    private static final String TAG = "MainActivity";
+    RecyclerView mRecyclerView;
+    SwipeRefreshLayout swipeRefresh;
     RestInterface restInterface;
-    FlickrData repoList = new FlickrData();
+    private PostRecyclerAdapter adapter;
+    private int currentPage = PAGE_START;
+    private boolean isLastPage = false;
+    private int totalPage = 20;
+    private boolean isLoading = false;
     Context context;
-    FloatingActionButton fab;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        fab = findViewById(R.id.fab);
-        recyclerView= findViewById(R.id.recyclerview);
+        swipeRefresh = findViewById(R.id.swipeRefresh);
+        mRecyclerView= findViewById(R.id.recyclerview);
         context = this;
 
-        getList();
+        swipeRefresh.setOnRefreshListener(this);
+        swipeRefresh.setColorSchemeResources(android.R.color.holo_blue_bright, android.R.color.holo_green_light, android.R.color.holo_orange_light, android.R.color.holo_red_light);
+        mRecyclerView.setHasFixedSize(true);
 
-        LinearLayoutManager linearLayoutManager=new LinearLayoutManager(this);
-        linearLayoutManager.setOrientation(LinearLayoutManager.VERTICAL);
-        recyclerView.setLayoutManager(linearLayoutManager);
+        // use a linear layout manager
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        mRecyclerView.setLayoutManager(layoutManager);
 
-        fab.setOnClickListener(new View.OnClickListener() {
+        adapter = new PostRecyclerAdapter(new ArrayList<>(),this);
+        mRecyclerView.setAdapter(adapter);
+        doApiCall();
+
+        /**
+         * add scroll listener while user reach in bottom load more will call
+         */
+        mRecyclerView.addOnScrollListener(new PaginationListener(layoutManager) {
             @Override
-            public void onClick(View v) {
-                getList();
+            protected void loadMoreItems() {
+                isLoading = true;
+                currentPage++;
+                doApiCall();
+            }
+
+            @Override
+            public boolean isLastPage() {
+                return isLastPage;
+            }
+
+            @Override
+            public boolean isLoading() {
+                return isLoading;
             }
         });
-
     }
 
-    private void getList(){
+    private void doApiCall() {
+
+        final ArrayList<Photo> items = new ArrayList<>();
         restInterface= RestApiClient.getClient().create(RestInterface.class);
+
         Call<FlickrData> call=restInterface.getRepo();
 
         call.enqueue(new Callback<FlickrData>() {
             @Override
             public void onResponse(Call<FlickrData> call, Response<FlickrData> response) {
-                FlickrData getRepo;
-                getRepo = response.body();
+                FlickrData getRepo = response.body();
+                items.addAll(getRepo.getPhotos().getPhoto());
 
-                flickrAdapter = new FlickrAdapter(context, getRepo);
-                recyclerView.setAdapter(flickrAdapter);
+                if (currentPage != PAGE_START) adapter.removeLoading();
+                adapter.addItems(items);
+
+                swipeRefresh.setRefreshing(false);
+
+                // check weather is last page or not
+                if (currentPage < totalPage) {
+                    adapter.addLoading();
+                } else {
+                    isLastPage = true;
+                }
+                isLoading = false;
             }
             @Override
             public void onFailure(Call<FlickrData> call, Throwable t) {
@@ -76,43 +114,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-
-        getMenuInflater().inflate(R.menu.layout_menu, menu);
-        return super.onCreateOptionsMenu(menu);
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-
-        int id=item.getItemId();
-
-        switch (id){
-            case R.id.linearViewHorizontal:
-                LinearLayoutManager linearLayoutManager=new LinearLayoutManager(this);
-                linearLayoutManager.setOrientation(LinearLayoutManager.HORIZONTAL);
-                recyclerView.setLayoutManager(linearLayoutManager);
-                break;
-
-            case R.id.linearViewVertical:
-                LinearLayoutManager linearLayoutManagerVertical=new LinearLayoutManager(this);
-                linearLayoutManagerVertical.setOrientation(LinearLayoutManager.VERTICAL);
-                recyclerView.setLayoutManager(linearLayoutManagerVertical);
-                break;
-
-            case R.id.gridView:
-                GridLayoutManager mGridLayoutManager = new GridLayoutManager(this, 3); // (Context context, int spanCount)
-                recyclerView.setLayoutManager(mGridLayoutManager);
-                break;
-            case R.id.staggeredViewHorizontal:
-                StaggeredGridLayoutManager mStaggeredHorizontalLayoutManager = new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.HORIZONTAL); // (int spanCount, int orientation)
-                recyclerView.setLayoutManager(mStaggeredHorizontalLayoutManager);
-                break;
-            case R.id.staggeredViewVertical:
-                StaggeredGridLayoutManager mStaggeredVerticalLayoutManager = new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL); // (int spanCount, int orientation)
-                recyclerView.setLayoutManager(mStaggeredVerticalLayoutManager);
-                break;
-        }
-        return super.onOptionsItemSelected(item);
+    public void onRefresh() {
+        currentPage = PAGE_START;
+        isLastPage = false;
+        adapter.clear();
+        doApiCall();
     }
 }
