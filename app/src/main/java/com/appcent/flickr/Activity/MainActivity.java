@@ -31,8 +31,6 @@ public class MainActivity extends AppCompatActivity
     RestInterface restInterface;
     private PostRecyclerAdapter adapter;
     private int currentPage = PAGE_START;
-    private boolean isLastPage = false;
-    private int totalPage = 20;
     private boolean isLoading = false;
     Context context;
 
@@ -70,11 +68,6 @@ public class MainActivity extends AppCompatActivity
             }
 
             @Override
-            public boolean isLastPage() {
-                return isLastPage;
-            }
-
-            @Override
             public boolean isLoading() {
                 return isLoading;
             }
@@ -99,12 +92,7 @@ public class MainActivity extends AppCompatActivity
 
                 swipeRefresh.setRefreshing(false);
 
-                // check weather is last page or not
-                if (currentPage < totalPage) {
-                    adapter.addLoading();
-                } else {
-                    isLastPage = true;
-                }
+                adapter.addLoading();
                 isLoading = false;
             }
             @Override
@@ -116,7 +104,6 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onRefresh() {
         currentPage = PAGE_START;
-        isLastPage = false;
         adapter.clear();
         doApiCall();
     }
