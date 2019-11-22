@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Flickr</string>
+    <string name="title_activity_photo_detail">PhotoDetailActivity</string>
+    <string name="action_settings">Settings</string>
 </resources>

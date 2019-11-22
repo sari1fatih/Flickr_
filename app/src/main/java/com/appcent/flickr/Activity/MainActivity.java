@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         mRecyclerView.setLayoutManager(layoutManager);
 
-        adapter = new PostRecyclerAdapter(new ArrayList<>(),this);
+        adapter = new PostRecyclerAdapter(new ArrayList<>(),this,this);
         mRecyclerView.setAdapter(adapter);
         doApiCall();
 

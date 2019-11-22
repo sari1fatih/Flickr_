@@ -1,12 +1,18 @@
 package com.appcent.flickr.Adapter;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.appcent.flickr.Activity.PhotoDetailActivity;
 import com.appcent.flickr.Entity.Photo;
 import com.appcent.flickr.R;
 import com.squareup.picasso.Picasso;
@@ -19,10 +25,12 @@ public class PostRecyclerAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     private List<Photo> listPhoto;
     Context context;
+    Activity activity;
 
-    public PostRecyclerAdapter(List<Photo> postItems, Context context) {
+    public PostRecyclerAdapter(List<Photo> postItems, Context context,Activity activity) {
         this.listPhoto = postItems;
-        this.context=context;
+        this.context = context;
+        this.activity = activity;
     }
 
     @NonNull
@@ -90,7 +98,7 @@ public class PostRecyclerAdapter extends RecyclerView.Adapter<BaseViewHolder> {
 
     public class ViewHolder extends BaseViewHolder {
         ImageView img1;
-
+String photoURL;
         ViewHolder(View itemView) {
             super(itemView);
             img1 = itemView.findViewById(R.id.img1);
@@ -103,7 +111,17 @@ public class PostRecyclerAdapter extends RecyclerView.Adapter<BaseViewHolder> {
         public void onBind(int position) {
             super.onBind(position);
             Photo item = listPhoto.get(position);
-            Picasso.with(context).load("https://farm"+ item.getFarm() + ".staticflickr.com/"+ item.getServer()+"/"+item.getId()+"_"+item.getSecret()+".jpg").into(img1);
+            photoURL = "https://farm"+ item.getFarm() + ".staticflickr.com/"+ item.getServer()+"/"+item.getId()+"_"+item.getSecret()+".jpg";
+            Picasso.with(context).load(photoURL).into(img1);
+
+            img1.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent myIntent = new Intent(activity, PhotoDetailActivity.class);
+                    myIntent.putExtra("photoURL", photoURL);
+                    activity.startActivity(myIntent);
+                }
+            });
         }
     }
 
